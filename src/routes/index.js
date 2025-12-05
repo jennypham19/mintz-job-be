@@ -3,45 +3,15 @@
 const express = require('express');
 
 // Import các file route riêng lẻ
-const authRoute = require('../routes/auth.route');
-const userRoute = require('../routes/user.router');
-const postRoute = require('../routes/post.router');
-const contactRoute = require('../routes/contact.route');
-const settingsRoute = require('../routes/settings.route');
-const permissionRoute = require('../routes/permission.route');
-const analyticsRoute = require('../routes/analytics.route');
 
 const router = express.Router();
+const authRoute = require('../routes/auth.route');
 
 // Tạo một mảng chứa các route và đường dẫn của chúng
 const defaultRoutes = [
   {
     path: '/auth',
     route: authRoute,
-  },
-  {
-    path: '/users',
-    route: userRoute,
-  },
-  {
-    path: '/posts',
-    route: postRoute,
-  },
-  {
-    path: '/contacts',
-    route: contactRoute,
-  },
-  {
-    path: '/settings',
-    route: settingsRoute,
-  },
-  {
-    path: '/permission',
-    route: permissionRoute,
-  },
-  {
-    path: '/analytics',
-    route: analyticsRoute,
   },
 ];
 

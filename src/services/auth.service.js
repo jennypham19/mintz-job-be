@@ -1,122 +1,75 @@
-const { User, Token, RoleGroup, UserRole, RoleGroupMenu, RoleGroupAction, Menu, Action } = require('../models');
+const { User, Token } = require('../models');
 const bcrypt = require('bcryptjs');
 const { StatusCodes } = require('http-status-codes');
 const ApiError = require('../utils/ApiError');
-const tokenService = require('./token.service');
-const userService = require('./user.service');
+// const userService = require('../services/user.service');
 
-
-const loginWithUsernameAndPassword = async (username, password) => {
-  try {
-      const user = await User.findOne({ where: { username } });
-      
-      if (!user || !(await bcrypt.compare(password, user.password))) {
-          throw new ApiError(StatusCodes.UNAUTHORIZED, 'Tên đăng nhập hoặc mật khẩu không chính xác');
-      }
-      if(user.is_deleted === 1) {
-        throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên');
-      }
-
-      if (user.role === 'admin') {
-        return user
-      }else{
-        const roleGroup = await RoleGroup.findOne({
-          include: [
-            {
-              model: UserRole,
-              as: 'roleUser',
-              where: {
-                user_id: user.id
-                }
-            },
-            {
-              model:  RoleGroupMenu,
-              as: 'roleGroupMenu',
-              include: [
-                { model: Menu, as: 'menu'}
-              ]
-            },
-            {
-              model: RoleGroupAction,
-              as: 'roleGroupAction',
-              include: [
-                { model: Action, as: 'action'}
-              ]
-            }
-          ],
-          order: [
-            ['roleGroupMenu', 'id', 'ASC']
-          ]
+// Đăng nhập
+const loginWithEmailAndPassword = async (email, password) => {
+    try {
+        const userDB = await User.findOne({ 
+            where: { email }
         });
-
-        if (!roleGroup) {
-          throw new ApiError(StatusCodes.FORBIDDEN, `Tài khoản ${user.username} chưa được gán quyền. Vui lòng liên hệ quản trị viên để được gán quyền`);
+        if(!userDB || !(await bcrypt.compare(password, userDB.password))) {
+            throw new ApiError(StatusCodes.UNAUTHORIZED, 'Tên đăng nhập hoặc mật khẩu không chính xác');
         }
-
-        const roleGroupFormatted = {
-              id: roleGroup.id,
-              name: roleGroup.name,
-              permission: roleGroup.roleGroupMenu.map((rgm) => {
-                  const menu = rgm.menu;
-                  return{
-                      id: menu.id,
-                      code: menu.code,
-                      name: menu.name,
-                      path: menu.path,
-                      icon: menu.icon,
-                      actions: (roleGroup.roleGroupAction ?? [])
-                          .filter((rga) => rga.action.menu_id === menu.id)
-                          .map((rga) => {
-                              const action = rga.action;
-                              return{
-                                  id: action.id,
-                                  code: action.code,
-                                  name: action.name,
-                                  path: action.path
-                              }
-                          })
-                  }
-              })
+        if(!userDB.is_active) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên');
         }
-        const userFormatted = {
-          ...user.toJSON(),
-          permission: roleGroupFormatted
-        }
-        return userFormatted;        
-      }
-
-
-  } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Server error during login process.' + error.message);
-  }
-};
-
-const logout = async (refreshToken) => {
-  const refreshTokenDoc = await Token.findOne({ where: { token: refreshToken, type: 'refresh' } });
-
-  if (!refreshTokenDoc) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Refresh token không tồn tại');
-  }
-
-  await refreshTokenDoc.destroy();
-};
-
-const changePassword = async (updateBody) => {
-  const user = await userService.getUserById(updateBody.user_id);
-  if (updateBody.password) {
-    updateBody.password = await bcrypt.hash(updateBody.password, 10);
-  }
-  Object.assign(user, updateBody);
-  await user.save();
-  return user;
+        return userDB;
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Server error during login process. ' + error.message);
+    }
 }
 
+// Đăng xuất
+const logout = async (refreshToken) => {
+    const refreshTokenDoc = await Token.findOne({ where: { token: refreshToken, type: 'refresh'}});
+    if(!refreshTokenDoc) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Refresh token không tồn tại');
+    }
+
+    await refreshTokenDoc.destroy();
+}
+
+// Lấy thông tin cá nhân
+// const getCurrentMe = async(id) => {
+//     try {
+//         const userDB = await User.findByPk(id, { attributes: { exclude: ['password'] }});
+//         if(!userDB) {
+//             throw new ApiError(StatusCodes.NOT_FOUND, 'Người dùng không tồn tại');
+//         }
+//         const newUser = userDB.toJSON();
+//         const user = {
+//             id: newUser.id,
+//             email: newUser.email,
+//             fullName: newUser.full_name,
+//             address: newUser.address,
+//             avatarUrl: newUser.avatar_url,
+//             code: newUser.code,
+//             createdAt: newUser.createdAt,
+//             department: newUser.department,
+//             dob: newUser.dob,
+//             gender: newUser.gender,
+//             nameImage: newUser.name_image,
+//             isActive: newUser.is_active,
+//             isReset: newUser.is_reset,
+//             phone: newUser.phone,
+//             role: newUser.role,
+//             updatedAt: newUser.updatedAt,
+//             work: newUser.work,
+//             isPermission: newUser.is_permission
+//         }
+//         return user;
+//     } catch (error) {
+//         if(error instanceof ApiError) throw error;
+//         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
+//     }
+// }
 
 module.exports = {
-  loginWithUsernameAndPassword,
-  changePassword,
-  logout
-};
+    loginWithEmailAndPassword,
+    logout,
+    // getCurrentMe
+}

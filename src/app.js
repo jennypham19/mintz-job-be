@@ -14,7 +14,6 @@ const apiRoutes = require('./routes');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger.config');
-const { startCron, startCronRealtime } = require('./jobs/fetchGaDaily.js');
 
 const app = express();
 
@@ -61,9 +60,6 @@ const corsOptions = {
   };
   app.use(cors(corsOptions));
 
-  const uploadsPath = path.resolve(__dirname, '..', 'uploads');
-  app.use('/uploads', express.static(uploadsPath));
-
   if (config.env === 'development') {
     app.use(morgan('dev'));
   }
@@ -71,27 +67,6 @@ const corsOptions = {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api', apiRoutes);
-
-if (process.env.NODE_ENV !== 'test') {
-  try {
-    Promise.all([ 
-        startCron(),
-        startCronRealtime(),
-    ]).then(() => {
-        logger.info('All cron jobs initialization process started.');
-    }).catch(error => {
-        logger.error('Failed during cron jobs initialization:', error);
-    });
-  } catch (error) {
-    logger.error('Synchronous error initializing cron jobs:', error);
-  }
-}
-
-// app.use('/api/uploads', express.static(path.join(__dirname, '..', 'uploads'),{
-//   setHeaders: (res, path) => {
-//     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-//   }
-// }));
 
 app.use((req, res, next) => {
   next(new ApiError(StatusCodes.NOT_FOUND, 'API Route Not Found'));
