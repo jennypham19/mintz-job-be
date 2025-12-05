@@ -42,13 +42,13 @@ module.exports = {
         },
         // Cột code: mã của user, kiểu chuỗi, không null
         gender: {
-            type: DataTypes.ENUM('female', 'male', 'other'),
+            type: Sequelize.ENUM('female', 'male', 'other'),
             allowNull: true
         },
         // Cột phone: số điện thoại của user, kiểu chuỗi, không null
         phone: {
             type: Sequelize.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         // Cột address: địa chỉ quê quán của user, kiểu chuỗi, có thể null
         address: {

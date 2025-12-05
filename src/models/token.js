@@ -54,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         // Cột user_id: khóa ngoại, liên kết đến bảng Users, không được null
         user_id: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.UUID,
             allowNull: false
         }
     }, {

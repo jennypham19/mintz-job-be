@@ -33,6 +33,11 @@ const login = catchAsync(async (req, res) => {
     })
 })
 
+const register = catchAsync(async(req, res) => {
+  await authService.registerWithEmailAndPassword(req.body);
+  res.status(StatusCodes.CREATED).send({ success: true, message: 'Đăng ký tài khoản thành công.'})
+})
+
 const logout = catchAsync(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if(refreshToken) {
@@ -65,15 +70,16 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
-// const getCurrentMe = catchAsync(async (req, res) => {
-//   // req.user đã có từ middleware protect
-//   const user = await authService.getCurrentMe(req.user.id);
-//   res.status(StatusCodes.OK).send({ success: true, data: user })
-// })
+const getCurrentMe = catchAsync(async (req, res) => {
+  // req.user đã có từ middleware protect
+  const user = await authService.getCurrentMe(req.user.id);
+  res.status(StatusCodes.OK).send({ success: true, data: user })
+})
 
 module.exports = {
     login,
     logout,
     refreshToken,
-    // getCurrentMe
+    getCurrentMe,
+    register
 }
