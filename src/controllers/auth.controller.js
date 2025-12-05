@@ -6,41 +6,41 @@ const config = require('../config');
 const ApiError = require('../utils/ApiError');
 
 const login = catchAsync(async (req, res) => {
-  const { username, password } = req.body;
-  const user = await authService.loginWithUsernameAndPassword(username, password);
-  const tokens = await tokenService.generateAuthTokens(user);
+    const { email, password } = req.body;
+    const user = await authService.loginWithEmailAndPassword(email, password);
+    const tokens = await tokenService.generateAuthTokens(user);
 
-  // Gửi refreshToken qua cookie httpOnly để tăng cường bảo mật
-  res.cookie('refreshToken', tokens.refreshToken.token, {
-    httpOnly: true,
-    secure: config.env === 'production',
-    sameSite: 'None',
-    maxAge: config.jwt.refreshExpirationDays * 24 * 60 * 60 * 1000, // maxAge tính bằng mili giây
-  });
+    //Gửi refreshToken qua cookie httpOnly để tăng cường bảo mật
+    res.cookie('refreshToken', tokens.refreshToken.token, {
+        httpOnly: true,
+        secure: config.env === 'production',
+        sameSite: 'None',
+        maxAge: config.jwt.refreshExpirationDays * 24 * 60 * 60 * 1000, // maxAge tính bằng mili giây
+    });
 
-  // Xóa mật khẩu trước khi gửi về client
-  user.password = undefined;
+    // Xóa mật khẩu trước khi gửi về client
+    user.password = undefined;
 
-  // Trả về response đúng như cấu trúc frontend cần
-  res.status(StatusCodes.OK).send({
-    success: true,
-    message: 'Đăng nhập thành công',
-    data: {
-      user,
-      accessToken: tokens.accessToken.token,
-      refreshToken: tokens.refreshToken.token,
-    },
-  });
-});
+    // Trả về response đúng như cấu trúc FE cần
+    res.status(StatusCodes.OK).send({
+        success: true,
+        message: 'Đăng nhập thành công',
+        data: {
+            user,
+            accessToken: tokens.accessToken.token,
+            refreshToken: tokens.refreshToken.token,
+        }
+    })
+})
 
 const logout = catchAsync(async (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
-  if (refreshToken) {
-    await authService.logout(refreshToken);
-  }
-  res.clearCookie('refreshToken');
-  res.status(StatusCodes.NO_CONTENT).send();
-});
+    const refreshToken = req.cookies.refreshToken;
+    if(refreshToken) {
+        await authService.logout(refreshToken);
+    }
+    res.clearCookie('refreshToken');
+    res.status(StatusCodes.NO_CONTENT).send();
+})
 
 const refreshToken = catchAsync(async (req, res) => {
   const oldRefreshToken = req.cookies.refreshToken;
@@ -65,22 +65,15 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
-const getMe = catchAsync(async (req, res) => {
-  // Thông tin user đã được middleware 'protect' lấy và gán vào req.user
-  const user = req.user;
-  res.status(StatusCodes.OK).send({ success: true, data: user });
-});
-
-const changePassword = catchAsync(async (req, res) => {
-  await authService.changePassword(req.body);
-  res.status(StatusCodes.OK).send({success: true, message: 'Thay đổi mật khẩu thành công'})
-})
-
+// const getCurrentMe = catchAsync(async (req, res) => {
+//   // req.user đã có từ middleware protect
+//   const user = await authService.getCurrentMe(req.user.id);
+//   res.status(StatusCodes.OK).send({ success: true, data: user })
+// })
 
 module.exports = {
-  login,
-  logout,
-  refreshToken,
-  getMe,
-  changePassword
-};
+    login,
+    logout,
+    refreshToken,
+    // getCurrentMe
+}
